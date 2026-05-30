@@ -16,3 +16,24 @@ pool.query('SELECT NOW()', (err: unknown, res: any) => {
     console.log('Database connected successfully');
   }
 });
+
+export const initDB = async () => {
+  const queryText = `
+    DROP TABLE IF EXISTS turnos;
+
+    CREATE TABLE turnos (
+      id SERIAL PRIMARY KEY,
+      nombre VARCHAR(100) NOT NULL,
+      servicio VARCHAR(100) NOT NULL,
+      fecha DATE NOT NULL,
+      hora TIME NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+  try {
+    await pool.query(queryText);
+    console.log('✅ Base de datos sincronizada con tu repositorio con éxito.');
+  } catch (error) {
+    console.error('❌ Error al inicializar la tabla:', error);
+  }
+};
