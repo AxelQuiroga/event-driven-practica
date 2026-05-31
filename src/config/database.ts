@@ -1,37 +1,37 @@
-import { Pool } from 'pg';
+import knex, { Knex } from 'knex';
+import path from 'path';
 
-export const pool = new Pool({
-  user: process.env.DB_USER!,
-  host: process.env.DB_HOST!,
-  database: process.env.DB_NAME!,
-  password: process.env.DB_PASSWORD!,
-  port: parseInt(process.env.DB_PORT!),
+// Instancia global de Knex — conexión a PostgreSQL
+export const db: Knex = knex({
+  client: 'pg',
+  connection: {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432'),
+    database: process.env.DB_NAME || 'template1',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || '',
+  },
+  pool: {
+    min: 2,
+    max: 10,
+  },
+  migrations: {
+    directory: path.join(__dirname, '../../migrations'),
+    extension: 'ts',
+  },
 });
 
-// Test connection
-pool.query('SELECT NOW()', (err: unknown, res: any) => {
-  if (err instanceof Error) {
-    console.error('Database connection error:', err);
-  } else {
-    console.log('Database connected successfully');
-  }
-});
-
-export const initDB = async () => {
-  const queryText = `
-    CREATE TABLE IF NOT EXISTS turnos (
-      id SERIAL PRIMARY KEY,
-      nombre VARCHAR(100) NOT NULL,
-      servicio VARCHAR(100) NOT NULL,
-      fecha DATE NOT NULL,
-      hora TIME NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `;
+// Inicializa la DB ejecutando migraciones pendientes
+export const initDB = async (): Promise<void> => {
   try {
-    await pool.query(queryText);
-    console.log('✅ Base de datos verificada/creada con éxito.');
+    const [batchNo, log] = await db.migrate.latest();
+    if (log.length === 0) {
+      console.log('✅ Base de datos al día (sin migraciones pendientes).');
+    } else {
+      console.log(`✅ Migraciones ejecutadas (batch ${batchNo}):`, log);
+    }
   } catch (error) {
-    console.error('❌ Error al inicializar la tabla:', error);
+    console.error('❌ Error al ejecutar migraciones:', error);
+    throw error; // Que el server.ts sepa que falló
   }
 };
