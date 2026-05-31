@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { TurnoService } from '../services/turnoService';
+import { CreateTurnoDTO } from '../schemas/turnoSchema';
 
 const turnoService = new TurnoService();
 
@@ -15,14 +16,11 @@ export const getTurnos = async (req: Request, res: Response) => {
 
 export const createTurno = async (req: Request, res: Response) => {
   try {
-    const { nombre, servicio, fecha, hora } = req.body;
+    // Type-safe: req.body ahora tiene tipo CreateTurnoDTO gracias al middleware de Zod
+    const turnoData = req.body as CreateTurnoDTO;
     
-    if (!nombre || !servicio || !fecha || !hora) {
-      res.status(400).json({ error: 'Todos los campos son requeridos' });
-      return;
-    }
-    
-    const turnoData = { nombre, servicio, fecha, hora };
+    // No necesitamos validar manualmente - el middleware de Zod ya lo hizo
+    // Si llegamos aquí, los datos son válidos según el schema
     const nuevoTurno = await turnoService.createTurno(turnoData);
     
     res.status(201).json(nuevoTurno);
