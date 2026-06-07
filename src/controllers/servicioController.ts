@@ -1,11 +1,12 @@
 import { Request, Response } from 'express';
-import { ServicioService } from '../services/servicioService';
+import { ServicioRepository } from '../repositories/servicioRepository';
 
-const servicioService = new ServicioService();
+const servicioRepo = new ServicioRepository();
 
-export const getAllServicios = async (req: Request, res: Response) => {
+// ─── GET /servicios ───────────────────────────────────────
+export const getServicios = async (_req: Request, res: Response) => {
   try {
-    const servicios = await servicioService.getAllServicios();
+    const servicios = await servicioRepo.findAll();
     res.json(servicios);
   } catch (error) {
     console.error('Error fetching servicios:', error);
@@ -13,23 +14,21 @@ export const getAllServicios = async (req: Request, res: Response) => {
   }
 };
 
+// ─── GET /servicios/:id ───────────────────────────────────
 export const getServicioById = async (req: Request<{ id: string }>, res: Response) => {
   try {
-    const { id } = req.params;
-    const servicioId = parseInt(id);
-    
-    if (isNaN(servicioId)) {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
       res.status(400).json({ error: 'ID inválido' });
       return;
     }
-    
-    const servicio = await servicioService.getServicioById(servicioId);
-    
+
+    const servicio = await servicioRepo.findById(id);
     if (!servicio) {
       res.status(404).json({ error: 'Servicio no encontrado' });
       return;
     }
-    
+
     res.json(servicio);
   } catch (error) {
     console.error('Error fetching servicio:', error);
