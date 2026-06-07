@@ -82,28 +82,27 @@ export class TurnoRepository {
   }
 
   /**
-   * Crea un nuevo turno.
+   * Crea un nuevo turno y lo devuelve con datos del cliente y servicio.
    */
   async create(turno: {
     cliente_id: number;
     servicio_id: number;
     fecha: string;
     hora: string;
-    estado: string;
     notas: string | null;
-  }): Promise<Turno> {
-    const [nuevo] = await db<Turno>('turnos')
+  }): Promise<TurnoConDetalles> {
+    const [nuevo] = await db('turnos')
       .insert({
         cliente_id: turno.cliente_id,
         servicio_id: turno.servicio_id,
         fecha: turno.fecha,
         hora: turno.hora,
-        estado: db.raw('?', [turno.estado]),
         notas: turno.notas,
       })
       .returning('*');
 
-    return nuevo;
+    // Devolver con datos joinados
+    return this.findById(nuevo.id) as Promise<TurnoConDetalles>;
   }
 
   /**

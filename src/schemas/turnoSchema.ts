@@ -27,7 +27,8 @@ export const createTurnoSchema = z.object({
     
   notas: z
     .string()
-    .nullable(),
+    .nullable()
+    .optional(),
 });
 
 // 2. ÉLITE: Inferimos el tipo de TS directamente del esquema de Zod.

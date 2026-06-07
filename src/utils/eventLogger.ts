@@ -21,7 +21,7 @@ export class EventLogger {
     
     // Suscribirse al evento de turno creado
     eventBus.subscribe('turnoCreado', (turno) => {
-      console.log(`[EVENTO] Turno creado: ${turno.nombre} - ${turno.servicio} el ${turno.fecha} a las ${turno.hora}`);
+      console.log(`[EVENTO] Turno creado: ${turno.cliente_nombre} - ${turno.servicio_nombre} el ${turno.fecha} a las ${turno.hora}`);
     });
     
     // Suscribirse al evento de turno eliminado

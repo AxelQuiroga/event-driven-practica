@@ -49,7 +49,7 @@ export class TurnoService {
 
   // ─── Crear turno ────────────────────────────────────────
 
-  async create(dto: CrearTurnoDTO): Promise<Turno> {
+  async create(dto: CrearTurnoDTO): Promise<TurnoConDetalles> {
     // 1. Validar que el cliente exista
     const cliente = await this.clienteRepo.findById(dto.cliente_id);
     if (!cliente) throw new TurnoError('Cliente no encontrado', 404);
@@ -70,13 +70,12 @@ export class TurnoService {
       );
     }
 
-    // 5. Crear el turno con estado 'pending'
+    // 5. Crear el turno con estado 'pending' y devolver con detalles
     const nuevoTurno = await this.turnoRepo.create({
       cliente_id: dto.cliente_id,
       servicio_id: dto.servicio_id,
       fecha: dto.fecha,
       hora: dto.hora,
-      estado: 'pending',
       notas: dto.notas || null,
     });
 
@@ -165,7 +164,7 @@ export class TurnoService {
    * Validar que la hora sea :00 o :30
    */
   private validarHora(hora: string): void {
-    const [minutos] = hora.split(':').map(Number);
+    const [, minutos] = hora.split(':').map(Number);
     if (minutos !== 0 && minutos !== 30) {
       throw new TurnoError('Los turnos son cada 30 minutos (ej: 09:00, 09:30, 10:00)', 400);
     }
