@@ -1,29 +1,151 @@
-import { Turno } from '../types/turno';
+import { Turno, TurnoConDetalles } from '../types/turno';
 import { db } from '../config/database';
 
 export class TurnoRepository {
-  async findAll(): Promise<Turno[]> {
-    return db<Turno>('turnos')
-      .select('*')
+  /**
+   * Devuelve todos los turnos con datos del cliente y servicio.
+   * Ordenados por fecha y hora.
+   */
+  async findAll(): Promise<TurnoConDetalles[]> {
+    return db('turnos')
+      .select(
+        'turnos.*',
+        'clientes.nombre as cliente_nombre',
+        'servicios.nombre as servicio_nombre',
+        'servicios.precio as servicio_precio'
+      )
+      .join('clientes', 'turnos.cliente_id', 'clientes.id')
+      .join('servicios', 'turnos.servicio_id', 'servicios.id')
       .orderBy([
-        { column: 'fecha' },
-        { column: 'hora' },
+        { column: 'turnos.fecha', order: 'desc' },
+        { column: 'turnos.hora', order: 'desc' },
       ]);
   }
 
-  async create(turno: Omit<Turno, 'id' | 'created_at'>): Promise<Turno> {
+  /**
+   * Devuelve turnos de una fecha específica.
+   */
+  async findByFecha(fecha: string): Promise<TurnoConDetalles[]> {
+    return db('turnos')
+      .select(
+        'turnos.*',
+        'clientes.nombre as cliente_nombre',
+        'servicios.nombre as servicio_nombre',
+        'servicios.precio as servicio_precio'
+      )
+      .join('clientes', 'turnos.cliente_id', 'clientes.id')
+      .join('servicios', 'turnos.servicio_id', 'servicios.id')
+      .where('turnos.fecha', fecha)
+      .orderBy('turnos.hora');
+  }
+
+  /**
+   * Busca un turno por ID con detalles.
+   */
+  async findById(id: number): Promise<TurnoConDetalles | undefined> {
+    return db('turnos')
+      .select(
+        'turnos.*',
+        'clientes.nombre as cliente_nombre',
+        'servicios.nombre as servicio_nombre',
+        'servicios.precio as servicio_precio'
+      )
+      .join('clientes', 'turnos.cliente_id', 'clientes.id')
+      .join('servicios', 'turnos.servicio_id', 'servicios.id')
+      .where('turnos.id', id)
+      .first();
+  }
+
+  /**
+   * Cuenta cuántos turnos activos hay en un slot horario específico.
+   *
+   * "Activos" = todos menos cancelled y no_show (no tenemos no_show todavía,
+   * pero lo ponemos por si lo agregamos después).
+   *
+   * @returns cantidad de turnos activos en ese slot
+   */
+  async contarTurnosEnSlot(fecha: string, hora: string): Promise<number> {
+    const [resultado] = await db('turnos')
+      .where({ fecha, hora })
+      .whereNotIn('estado', ['cancelled'])
+      .count('id as total');
+
+    return Number(resultado?.total ?? 0);
+  }
+
+  /**
+   * Verifica si un slot tiene capacidad (menos de 3 turnos activos).
+   */
+  async tieneCapacidad(fecha: string, hora: string): Promise<boolean> {
+    const total = await this.contarTurnosEnSlot(fecha, hora);
+    return total < 3;
+  }
+
+  /**
+   * Crea un nuevo turno.
+   */
+  async create(turno: {
+    cliente_id: number;
+    servicio_id: number;
+    fecha: string;
+    hora: string;
+    estado: string;
+    notas: string | null;
+  }): Promise<Turno> {
     const [nuevo] = await db<Turno>('turnos')
       .insert({
-        nombre: turno.nombre,
-        servicio: turno.servicio,
+        cliente_id: turno.cliente_id,
+        servicio_id: turno.servicio_id,
         fecha: turno.fecha,
         hora: turno.hora,
+        estado: db.raw('?', [turno.estado]),
+        notas: turno.notas,
       })
       .returning('*');
 
     return nuevo;
   }
 
+  /**
+   * Actualiza un turno existente.
+   * Útil para editar hora, servicio, cliente, etc.
+   */
+  async update(id: number, data: {
+    cliente_id?: number;
+    servicio_id?: number;
+    fecha?: string;
+    hora?: string;
+    notas?: string;
+  }): Promise<Turno | undefined> {
+    const [actualizado] = await db<Turno>('turnos')
+      .where('id', id)
+      .update({
+        ...data,
+        updated_at: db.fn.now(),
+      })
+      .returning('*');
+
+    return actualizado;
+  }
+
+  /**
+   * Cambia el estado de un turno.
+   */
+  async updateEstado(id: number, estado: string): Promise<Turno | undefined> {
+    const [actualizado] = await db<Turno>('turnos')
+      .where('id', id)
+      .update({
+        estado: db.raw('?', [estado]),
+        updated_at: db.fn.now(),
+      })
+      .returning('*');
+
+    return actualizado;
+  }
+
+  /**
+   * Elimina un turno.
+   */
   async delete(id: number): Promise<void> {
     await db<Turno>('turnos')
       .where('id', id)

@@ -1,15 +1,17 @@
 import { z } from 'zod';
 
 // 1. Definimos el contrato de validación con Zod
+// Ahora acepta IDs en lugar de strings - arquitectura relacional correcta
 export const createTurnoSchema = z.object({
-  nombre: z
-    .string()
-    .min(3, 'El nombre debe tener al menos 3 caracteres')
-    .max(100, 'El nombre es demasiado largo'),
+  cliente_id: z
+    .number()
+    .int('El ID del cliente debe ser un entero')
+    .positive('El ID del cliente debe ser positivo'),
     
-  servicio: z
-    .string()
-    .min(3, 'El servicio no es válido'),
+  servicio_id: z
+    .number()
+    .int('El ID del servicio debe ser un entero')
+    .positive('El ID del servicio debe ser positivo'),
     
   fecha: z
     .string()
@@ -18,6 +20,14 @@ export const createTurnoSchema = z.object({
   hora: z
     .string()
     .regex(/^\d{2}:\d{2}$/, 'La hora debe tener el formato HH:MM'),
+    
+  estado: z
+    .enum(['pending', 'completed', 'cancelled'])
+    .default('pending'),
+    
+  notas: z
+    .string()
+    .nullable(),
 });
 
 // 2. ÉLITE: Inferimos el tipo de TS directamente del esquema de Zod.
