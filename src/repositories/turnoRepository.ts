@@ -82,6 +82,37 @@ export class TurnoRepository {
   }
 
   /**
+   * Devuelve la capacidad de TODOS los slots de un día.
+   * Útil para mostrar la grilla de disponibilidad.
+   */
+  async getCapacidadPorDia(fecha: string): Promise<{ hora: string; ocupados: number; total: number }[]> {
+    // Todos los slots posibles: 09:00 a 19:00 cada 30 min
+    const slots: string[] = [];
+    for (let h = 9; h <= 19; h++) {
+      slots.push(`${String(h).padStart(2, '0')}:00`);
+      if (h < 19) slots.push(`${String(h).padStart(2, '0')}:30`);
+    }
+
+    // Contar turnos activos por slot
+    const conteo = await db('turnos')
+      .where('fecha', fecha)
+      .whereNotIn('estado', ['cancelled'])
+      .groupBy('hora')
+      .select('hora')
+      .count('id as ocupados');
+
+    const conteoMap = new Map<string, number>(
+      conteo.map((c) => [c.hora as string, Number(c.ocupados)])
+    );
+
+    return slots.map((hora) => ({
+      hora,
+      ocupados: conteoMap.get(hora) ?? 0,
+      total: 3,
+    }));
+  }
+
+  /**
    * Crea un nuevo turno y lo devuelve con datos del cliente y servicio.
    */
   async create(turno: {

@@ -47,6 +47,10 @@ export class TurnoService {
     return turno;
   }
 
+  async getCapacidad(fecha: string): Promise<{ hora: string; ocupados: number; total: number }[]> {
+    return this.turnoRepo.getCapacidadPorDia(fecha);
+  }
+
   // ─── Crear turno ────────────────────────────────────────
 
   async create(dto: CrearTurnoDTO): Promise<TurnoConDetalles> {

@@ -46,6 +46,22 @@ export const getTurnoById = async (req: Request<{ id: string }>, res: Response) 
   }
 };
 
+// ─── GET /turnos/capacidad?fecha=YYYY-MM-DD ───────────────
+export const getCapacidad = async (req: Request, res: Response) => {
+  try {
+    const { fecha } = req.query;
+    if (!fecha || typeof fecha !== 'string') {
+      res.status(400).json({ error: 'El parámetro "fecha" es obligatorio (YYYY-MM-DD)' });
+      return;
+    }
+
+    const capacidad = await turnoService.getCapacidad(fecha);
+    res.json(capacidad);
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
 // ─── POST /turnos ─────────────────────────────────────────
 export const createTurno = async (req: Request, res: Response) => {
   try {
