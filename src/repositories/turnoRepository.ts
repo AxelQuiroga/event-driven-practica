@@ -94,11 +94,17 @@ export class TurnoRepository {
     }
 
     // Contar turnos activos por slot
+    // IMPORTANTE: PostgreSQL devuelve TIME con segundos ("10:00:00") pero
+    // nosotros en el frontend manejamos "10:00". Si no formateamos, el Map
+    // key "10:00:00" nunca matchea con nuestro slot "10:00" → TODO 0.
+    //
+    // Usamos to_char() en SQL para que tanto GROUP BY como SELECT devuelvan
+    // "HH:MI" sin segundos, y así matchean con los slots del frontend.
     const conteo = await db('turnos')
       .where('fecha', fecha)
       .whereNotIn('estado', ['cancelled'])
-      .groupBy('hora')
-      .select('hora')
+      .groupByRaw("to_char(hora, 'HH24:MI')")
+      .select(db.raw("to_char(hora, 'HH24:MI') as hora"))
       .count('id as ocupados');
 
     const conteoMap = new Map<string, number>(
